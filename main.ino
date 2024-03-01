@@ -67,7 +67,7 @@ float cellVoltageLevels[NO_OF_CELLS + 1] = {0.0}; // frequency array goes brrr! 
 static const BaseType_t pro_cpu = 0;
 static const BaseType_t app_cpu = 1;
 
-// Tasks Priorities (0(lowest) -> 24(highest))
+// Tasks Priorities (0 (lowest) -> 24 (highest))
 #define READ_VOLTAGE_PRIORITY   0
 #define READ_TEMP_PRIORITY      0
 #define READ_CURR_PRIORITY      0
