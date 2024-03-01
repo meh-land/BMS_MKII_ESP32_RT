@@ -1,24 +1,12 @@
-// Libraries
-#include <ros.h>
-//#include <> //FreeRTOS
+/**Libraries*/
+#include <ros.h> // ROS
 #include "ACS712.h" //acs712
-
-#include "Adafruit_Sensor.h"
+#include "Adafruit_Sensor.h" // necessary for DHT11
 #include "DHT.h" //DHT11
+// FreeRTOS is prebuilt in ESP32 Library (Yay!)
 
 
-
-
-/*
- * Algorithm (Preferably with Tasks)
- * Task_1: Read cell voltage levels each 5 seconds + send it with ROS_serial
- * Task_2: Read temperature level each 10 seconds + send it with ROS_serial
- * Task_3: Read current level each 1 second + send it with ROS_serial
- * Interrupt_Setup_1: When current level reaches a certain level, activate CONTACTOR
- * Interrupt_Setup_2: When any cell voltage exceeds max voltage, activate balancing
- * Interrupt_Setup_3: When temperature level reaches a critical level, shut down the whole system
- */
-
+/**Defining Pins*/ // #TODO: Change #define to enums
 // ADC Pins
 #define ACS_PIN 4
 #define DHT_PIN 5
@@ -48,11 +36,89 @@
 // Connect a 10K resistor from pin 2 (data) to pin 1 (power) of the sensor
 #define DHTTYPE DHT11
 DHT dht(DHT_PIN, DHTTYPE);
+float tempLevel_C = 0;
+float humidityLevel = 0;
+float tempIndex = 0;
 
 
 /**ACS712*/
       //ACS(PIN, MAX_VOLTAGE, ADC_STEPS, SENSITIVITY)
 ACS712  ACS(A0, 5.0, 1023, 100); // 20A varient has 100mV/A sensitivity
+unsigned long int currentLevel_mA = 0;
+
+/**Cell Voltage Level*/
+float cellVoltageLevels[NO_OF_CELLS + 1] = {0.0}; // frequency array goes brrr! *wink wink*
+
+/**Task Shenanigans*/
+/*
+ * Algorithm (Preferably with Tasks)
+ * Task_1: Read cell voltage levels each 5 seconds + send it with ROS_serial
+ * Task_2: Read temperature level each 10 seconds + send it with ROS_serial
+ * Task_3: Read current level each 1 second + send it with ROS_serial
+ * Interrupt_Setup_1: When current level reaches a certain level, activate CONTACTOR
+ * Interrupt_Setup_2: When any cell voltage exceeds max voltage, activate balancing
+ * Interrupt_Setup_3: When temperature level reaches a critical level, shut down the whole system
+ */
+
+// Restrict ESP32 to only 1 core for now *will change this when everything works as intended*
+#if CONFIG_FREERTOS_UNICORE
+  static const BaseType_t app_cpu = 0;
+#else
+  static const BaseType_t app_cpu = 1;
+#endif
+
+// Tasks Priorities
+#define READ_VOLTAGE_PRIORITY   0
+#define READ_TEMP_PRIORITY      0
+#define READ_CURR_PRIORITY      0
+
+// Task 1
+void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
+{
+    while(true)
+    {
+        // read voltage and send it via ROS_serial  
+        for (int i = CELL_01; i <= CELL_03; i++)
+        {
+            cellVoltageLevels[i] = analogRead(i) * 1024 / 3.3;
+            //vTaskDelay(200 / portTICK_PERIOD_MS);
+        }
+        // ros_serial => send this topic
+    }  
+}
+
+
+// Task 2
+void void_RTOSTask_2_ReadTempLevel(void *parameter)
+{
+    while(true)
+    {
+        // read temp and send it via ROS_serial  
+        // Wait a few seconds between measurements.
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        // Reading temperature or humidity takes about 250 milliseconds!
+        // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+        float humidityLevel = dht.readHumidity();
+        // Read temperature as Celsius (the default)
+        float tempLevel_C = dht.readTemperature();
+        // Compute heat index in Celsius (isFahreheit = false)
+        float tempIndex = dht.computeHeatIndex(tempLevel_C, humidityLevel, false);
+
+        // ros_serial => send this topic
+    }  
+}
+
+
+// Task 3
+void void_RTOSTask_3_ReadCurrentLevel(void *parameter)
+{
+    while(true)
+    {
+        // read current and send it via ROS_serial  
+        currentLevel_mA = ACS.mA_DC(); // return reading in mA
+        // ros_serial => send this topic
+    }  
+}
 
 
 void setup() {
@@ -69,33 +135,15 @@ void setup() {
   pinMode(CELL_02,INPUT);
   pinMode(CELL_03,INPUT);
 
+  xTaskCreatePinnedToCore(void_RTOSTask_1_ReadCellVoltageLevel, "Read Cell Voltage Level", 1024, NULL, READ_VOLTAGE_PRIORITY, NULL, app_cpu);
+  xTaskCreatePinnedToCore(void_RTOSTask_2_ReadTempLevel, "Read Temperature Level", 1024, NULL, READ_TEMP_PRIORITY, NULL, app_cpu);
+  xTaskCreatePinnedToCore(void_RTOSTask_3_ReadCurrentLevel, "Read Current Level", 1024, NULL, READ_CURR_PRIORITY, NULL, app_cpu);
+
+  // no need to call vTaskStartScheduler() like in Vanilla FreeRTOS --- it is called automatically
   
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-
-
-  /**Temperature Code*/
-  // Wait a few seconds between measurements.
-  delay(2000);
-  // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  float h = dht.readHumidity();
-  // Read temperature as Celsius (the default)
-  float t = dht.readTemperature();
-  // Compute heat index in Celsius (isFahreheit = false)
-  float hic = dht.computeHeatIndex(t, h, false);
-
-  /**ACS712 Code*/
-  int mA = ACS.mA_DC(); // return reading in mA
-
-  /**Cell Voltage Code*/
-  float cellVoltage[NO_OF_CELLS + 1] = {0.0};
-
-  for (int i = CELL_01; i <= CELL_03; i++)
-  {
-      cellVoltage[i] = analogRead(i) * 1024 / 3.3;
-  }
-  
+ 
 }
