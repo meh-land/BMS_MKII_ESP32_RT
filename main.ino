@@ -60,14 +60,14 @@ float cellVoltageLevels[NO_OF_CELLS + 1] = {0.0}; // frequency array goes brrr! 
  * Interrupt_Setup_3: When temperature level reaches a critical level, shut down the whole system
  */
 
-// Restrict ESP32 to only 1 core for now *will change this when everything works as intended*
-#if CONFIG_FREERTOS_UNICORE
-  static const BaseType_t app_cpu = 0;
-#else
-  static const BaseType_t app_cpu = 1;
-#endif
 
-// Tasks Priorities
+// Restrict ESP32 to only 1 core for now *will change this when everything works as intended*
+// xTaskCreatePinnedToCore() -> last argument is app_cpu
+// ESP32 has 2 cores: pro && app cpu:
+static const BaseType_t pro_cpu = 0;
+static const BaseType_t app_cpu = 1;
+
+// Tasks Priorities (0(lowest) -> 24(highest))
 #define READ_VOLTAGE_PRIORITY   0
 #define READ_TEMP_PRIORITY      0
 #define READ_CURR_PRIORITY      0
@@ -135,9 +135,9 @@ void setup() {
   pinMode(CELL_02,INPUT);
   pinMode(CELL_03,INPUT);
 
-  xTaskCreatePinnedToCore(void_RTOSTask_1_ReadCellVoltageLevel, "Read Cell Voltage Level", 1024, NULL, READ_VOLTAGE_PRIORITY, NULL, app_cpu);
-  xTaskCreatePinnedToCore(void_RTOSTask_2_ReadTempLevel, "Read Temperature Level", 1024, NULL, READ_TEMP_PRIORITY, NULL, app_cpu);
-  xTaskCreatePinnedToCore(void_RTOSTask_3_ReadCurrentLevel, "Read Current Level", 1024, NULL, READ_CURR_PRIORITY, NULL, app_cpu);
+  xTaskCreate(void_RTOSTask_1_ReadCellVoltageLevel, "Read Cell Voltage Level", 1024, NULL, READ_VOLTAGE_PRIORITY, NULL);
+  xTaskCreate(void_RTOSTask_2_ReadTempLevel, "Read Temperature Level", 1024, NULL, READ_TEMP_PRIORITY, NULL);
+  xTaskCreate(void_RTOSTask_3_ReadCurrentLevel, "Read Current Level", 1024, NULL, READ_CURR_PRIORITY, NULL);
 
   // no need to call vTaskStartScheduler() like in Vanilla FreeRTOS --- it is called automatically
   
