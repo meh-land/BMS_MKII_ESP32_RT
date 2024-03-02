@@ -35,8 +35,10 @@ void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
 			// critical section start
 			if (cellVoltageTemp > CELL_MAX_mV)
 				// BALANCING GOES BRRR!
+				;
 			else if (cellVoltageTemp < CELL_MIN_mV)
 				// CHARGING GOES BRRR...?!
+				;
 			// critical section end
 			
 			cellVoltageLevels[local_u8CellNumIterator] = cellVoltageTemp / 1000.0;
