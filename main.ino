@@ -1,6 +1,9 @@
 /**Libraries*/
 #include <ros.h> // ROS
 
+#include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/Float32.h>
+
 #include "ACS712.h" //acs712
 #include "Adafruit_Sensor.h" // necessary for DHT11
 #include "DHT.h" //DHT11
@@ -39,6 +42,8 @@ float currentLevel_mA = 0.0;
 
 #define TEMP_MAX  45
 
+#define TEMP_VAR_COUNT   3
+
 #define DHT_PIN 5 // ADC pin 5
 
 // Connect pin 1 (on the left) of the sensor to +5V
@@ -50,9 +55,11 @@ float currentLevel_mA = 0.0;
 // Connect a 10K resistor from pin 2 (data) to pin 1 (power) of the sensor
 #define DHTTYPE DHT11
 DHT dht(DHT_PIN, DHTTYPE);
-float tempLevel_C = 0;
+
+float tempHumidityIndexArr[3] = {0.0};
+/*float tempLevel_C = 0;
 float humidityLevel = 0;
-float tempIndex = 0;
+float tempIndex = 0;*/
 
 /**************************************BALANCING**************************************/
 
@@ -96,6 +103,29 @@ void balancing_init();
 void contactor_init();
 
 void interrupt_init();
+
+
+
+/***********************************ROS*************************************/
+
+std_msgs::Float32MultiArray ROS_Msg_cellVoltageLevels;
+std_msgs::Float32MultiArray ROS_Msg_tempHumidityIndexArr;
+std_msgs::Float32 ROS_Msg_currentLevel_mA;
+
+
+ros::NodeHandle nh;  // Initalizing the ROS node
+
+ros::Publisher VoltageLevel_pub("CellsVoltageLevels",&ROS_Msg_cellVoltageLevels);
+ros::Publisher CurrentLevel_pub("Current Value",&ROS_Msg_currentLevel_mA);
+ros::Publisher TemperatureLevel_pub("Temperature & Humidity & Temperature Index",&ROS_Msg_tempHumidityIndexArr);
+
+
+
+
+
+
+
+
 
 /**Task Shenanigans*/
 /*
@@ -160,6 +190,11 @@ void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
                 
          }
          // ros_serial => send this topic
+         nh.spinOnce();
+         ROS_Msg_cellVoltageLevels.data_length= NO_OF_CELLS;
+         ROS_Msg_cellVoltageLevels.data= cellVoltageLevels;
+         VoltageLevel_pub.publish(&ROS_Msg_cellVoltageLevels);
+         
          vTaskDelay(500);
     }  
 }
@@ -176,16 +211,16 @@ void void_RTOSTask_2_ReadTempLevel(void *parameter)
         //delay(250);
         
         // Read temperature as Celsius (the default)
-        tempLevel_C = dht.readTemperature();
+        tempHumidityIndexArr[0] = dht.readTemperature();
 
         // Read humidity level
-        humidityLevel = dht.readHumidity();
+        tempHumidityIndexArr[1] = dht.readHumidity();
 
         // Compute heat index in Celsius (isFahreheit = false)
-        tempIndex = dht.computeHeatIndex(tempLevel_C, humidityLevel, false);
+        tempHumidityIndexArr[2] = dht.computeHeatIndex(tempHumidityIndexArr[0], tempHumidityIndexArr[1], false);
 
         // critical section start
-        if ((tempLevel_C > TEMP_MAX) && !(contactorFlag))
+        if ((tempHumidityIndexArr[0] > TEMP_MAX) && !(contactorFlag))
         {
               digitalWrite(CONTACTOR_PIN1, HIGH);
               digitalWrite(CONTACTOR_PIN2, HIGH);
@@ -195,6 +230,10 @@ void void_RTOSTask_2_ReadTempLevel(void *parameter)
 
         
         // ros_serial => send this topic
+        nh.spinOnce();
+        ROS_Msg_tempHumidityIndexArr.data_length= TEMP_VAR_COUNT;
+        ROS_Msg_tempHumidityIndexArr.data= tempHumidityIndexArr;
+        TemperatureLevel_pub.publish(&ROS_Msg_tempHumidityIndexArr);
     
         vTaskDelay(1000); // reading is taken once per second
         
@@ -212,6 +251,9 @@ void void_RTOSTask_3_ReadCurrentLevel(void *parameter)
         currentLevel_mA = ACS.mA_DC() / 1000.0; // return reading in A
     
         // ros_serial => send this topic
+        nh.spinOnce();
+        ROS_Msg_currentLevel_mA.data= currentLevel_mA;
+        CurrentLevel_pub.publish(&ROS_Msg_currentLevel_mA);
     
         vTaskDelay(300);
     
@@ -237,6 +279,9 @@ void setup() {
   
   // Contactor Pins Setup
   contactor_init();
+
+  // ROS Setup
+  ROSNodes_init();
 
   // Interrupt Setup
   interrupt_init();
@@ -286,6 +331,18 @@ void contactor_init()
   pinMode(CONTACTOR_PIN2, OUTPUT);
   pinMode(CONTACTOR_SET, INPUT);
   pinMode(CONTACTOR_RESET, INPUT);
+}
+
+void ROSNodes_init()
+{
+    //ROS node setup
+    nh.initNode();
+    nh.advertise(VoltageLevel_pub);
+    nh.advertise(CurrentLevel_pub);
+    nh.advertise(TemperatureLevel_pub);  
+
+  
+  
 }
 
 void interrupt_init()
