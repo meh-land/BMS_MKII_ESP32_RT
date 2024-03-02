@@ -95,6 +95,8 @@ void balancing_init();
 
 void contactor_init();
 
+void interrupt_init();
+
 /**Task Shenanigans*/
 /*
  * Algorithm (Preferably with Tasks)
@@ -114,8 +116,8 @@ static const BaseType_t pro_cpu = 0;
 static const BaseType_t app_cpu = 1;
 
 // Tasks Priorities (0 (lowest) -> 24 (highest))
-#define READ_VOLTAGE_PRIORITY   12
-#define READ_TEMP_PRIORITY      12
+#define READ_VOLTAGE_PRIORITY   19
+#define READ_TEMP_PRIORITY      13
 #define READ_CURR_PRIORITY      12
 
 // Task 1
@@ -158,7 +160,7 @@ void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
                 
          }
          // ros_serial => send this topic
-         //vTaskDelay(5000);
+         vTaskDelay(500);
     }  
 }
 
@@ -171,7 +173,7 @@ void void_RTOSTask_2_ReadTempLevel(void *parameter)
         // read temp and send it via ROS_serial  
     
         // Reading temperature or humidity takes about 250 milliseconds!
-        delay(250);
+        //delay(250);
         
         // Read temperature as Celsius (the default)
         tempLevel_C = dht.readTemperature();
@@ -194,7 +196,7 @@ void void_RTOSTask_2_ReadTempLevel(void *parameter)
         
         // ros_serial => send this topic
     
-    //vTaskDelay(1000);
+        vTaskDelay(1000); // reading is taken once per second
         
     }  
 }
@@ -211,7 +213,7 @@ void void_RTOSTask_3_ReadCurrentLevel(void *parameter)
     
         // ros_serial => send this topic
     
-        //vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(300);
     
     }  
 }
