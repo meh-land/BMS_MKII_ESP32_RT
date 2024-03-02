@@ -158,7 +158,7 @@ void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
                 
          }
          // ros_serial => send this topic
-         //vTaskDelay(5000 / portTICK_PERIOD_MS);
+         //vTaskDelay(5000);
     }  
 }
 
