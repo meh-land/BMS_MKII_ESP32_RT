@@ -10,11 +10,17 @@
 // ADC Pins
 #define ACS_PIN 4
 #define DHT_PIN 5
-#define CELL_01 6
-#define CELL_02 7
-#define CELL_03 8
+#define VPIN_CELL_01 6
+#define VPIN_CELL_02 7
+#define VPIN_CELL_03 8
 
 #define NO_OF_CELLS 3
+#define CELL_01		0
+#define CELL_02		1
+#define CELL_03		2
+
+#define CELL_MAX_mV	4200
+#define CELL_MIN_mV	3700
 
 // Balancing Pins
 #define BALANCING_CELL_01   35
@@ -44,10 +50,11 @@ float tempIndex = 0;
 /**ACS712*/
       //ACS(PIN, MAX_VOLTAGE, ADC_STEPS, SENSITIVITY)
 ACS712  ACS(A0, 5.0, 1023, 100); // 20A varient has 100mV/A sensitivity
-unsigned long int currentLevel_mA = 0;
+float currentLevel_mA = 0.0;
 
 /**Cell Voltage Level*/
-float cellVoltageLevels[NO_OF_CELLS + 1] = {0.0}; // frequency array goes brrr! *wink wink*
+float cellVoltageLevels[NO_OF_CELLS] = {0.0}; // frequency array goes brrr! *wink wink* (V levels in V)
+unsigned long int cellVoltageTemp = 0; // (V levels in mV)
 
 /**Task Shenanigans*/
 /*
@@ -78,12 +85,23 @@ void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
     while(true)
     {
         // read voltage and send it via ROS_serial  
-        for (int i = CELL_01; i <= CELL_03; i++)
+        for (unsigned char local_u8CellNumIterator = CELL_01, unsigned char local_u8CellPinIterator = VPIN_CELL_01; local_u8CellNumIterator <= CELL_03; local_u8CellNumIterator++, local_u8CellPinIterator++;)
         {
-            cellVoltageLevels[i] = analogRead(i) * 1024 / 3.3;
-            //vTaskDelay(200 / portTICK_PERIOD_MS);
+            cellVoltageTemp = analogRead(local_u8CellPinIterator) * 3.3 / 1024 * 1000;
+			cellVoltageTemp = (11.0 / 14.0) / (NO_OF_CELLS - local_u8CellNumIterator);
+			
+			// critical section start
+			if (cellVoltageTemp > CELL_MAX_mV)
+				// BALANCING GOES BRRR!
+			else if (cellVoltageTemp < CELL_MIN_mV)
+				// CHARGING GOES BRRR...?!
+			// critical section end
+			
+			cellVoltageLevels[local_u8CellNumIterator] = cellVoltageTemp / 1000.0;
+			
         }
         // ros_serial => send this topic
+		//vTaskDelay(5000 / portTICK_PERIOD_MS);
     }  
 }
 
@@ -94,17 +112,24 @@ void void_RTOSTask_2_ReadTempLevel(void *parameter)
     while(true)
     {
         // read temp and send it via ROS_serial  
-        // Wait a few seconds between measurements.
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
+		
         // Reading temperature or humidity takes about 250 milliseconds!
-        // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-        float humidityLevel = dht.readHumidity();
+        
         // Read temperature as Celsius (the default)
-        float tempLevel_C = dht.readTemperature();
+        tempLevel_C = dht.readTemperature();
+		
+		// ros_serial => send this topic
+		
+		//vTaskDelay(10000 / portTICK_PERIOD_MS);
+		
+		
+		
+		/*// Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+        humidityLevel = dht.readHumidity();
         // Compute heat index in Celsius (isFahreheit = false)
-        float tempIndex = dht.computeHeatIndex(tempLevel_C, humidityLevel, false);
-
-        // ros_serial => send this topic
+        tempIndex = dht.computeHeatIndex(tempLevel_C, humidityLevel, false);
+		// Wait a few seconds between measurements.*/
+        
     }  
 }
 
@@ -115,8 +140,13 @@ void void_RTOSTask_3_ReadCurrentLevel(void *parameter)
     while(true)
     {
         // read current and send it via ROS_serial  
-        currentLevel_mA = ACS.mA_DC(); // return reading in mA
+		
+        currentLevel_mA = ACS.mA_DC() / 1000.0; // return reading in A
+		
         // ros_serial => send this topic
+		
+		//vTaskDelay(1000 / portTICK_PERIOD_MS);
+		
     }  
 }
 
