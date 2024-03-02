@@ -60,7 +60,7 @@ float tempIndex = 0;
 #define CONTACTOR_PIN1  31
 #define CONTACTOR_PIN2  33
 
-/**************************FUNCTION PROTOTYPES**************************/
+/*********************************FUNCTION PROTOTYPES********************************/
 void tempSensor_init();
 
 void currentSensor_init();
