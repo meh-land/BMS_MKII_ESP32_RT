@@ -35,7 +35,7 @@ unsigned long int cellVoltageTemp = 0; // (V levels in mV)
 #define ACS_PIN 4 // ADC pin 4
 
       //ACS(PIN, MAX_VOLTAGE, ADC_STEPS, SENSITIVITY)
-ACS712  ACS(A0, 5.0, 1023, 100); // 20A varient has 100mV/A sensitivity
+ACS712  ACS(ACS_PIN, 3.3, 4095, 100); // 20A varient has 100mV/A sensitivity
 float currentLevel_mA = 0.0;
 
 /*********************************TEMPERATURE SENSING*********************************/
