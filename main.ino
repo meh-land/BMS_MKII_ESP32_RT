@@ -286,9 +286,9 @@ void setup() {
   interrupt_init();
 
   // Creating Tasks
-  xTaskCreatePinnedToCore(void_RTOSTask_1_ReadCellVoltageLevel, "Read Cell Voltage Level", STACK_SIZE, NULL, READ_VOLTAGE_PRIORITY, Task1, pro_cpu);
-  xTaskCreatePinnedToCore(void_RTOSTask_2_ReadTempLevel, "Read Temperature Level", STACK_SIZE, NULL, READ_TEMP_PRIORITY, Task2, app_cpu);
-  xTaskCreatePinnedToCore(void_RTOSTask_3_ReadCurrentLevel, "Read Current Level", STACK_SIZE, NULL, READ_CURR_PRIORITY, Task3, app_cpu);
+  xTaskCreatePinnedToCore(void_RTOSTask_1_ReadCellVoltageLevel, "Read Cell Voltage Level", STACK_SIZE, NULL, READ_VOLTAGE_PRIORITY, &Task1, pro_cpu);
+  xTaskCreatePinnedToCore(void_RTOSTask_2_ReadTempLevel, "Read Temperature Level", STACK_SIZE, NULL, READ_TEMP_PRIORITY, &Task2, app_cpu);
+  xTaskCreatePinnedToCore(void_RTOSTask_3_ReadCurrentLevel, "Read Current Level", STACK_SIZE, NULL, READ_CURR_PRIORITY, &Task3, app_cpu);
 
   // no need to call vTaskStartScheduler() like in vanilla FreeRTOS --- it is called automatically
 
