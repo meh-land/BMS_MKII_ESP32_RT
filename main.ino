@@ -14,9 +14,9 @@
 
 #define RESISTOR_RATIO  (11.0 / 14.0)
 
-#define VPIN_CELL_01 6  // ADC pin 6
-#define VPIN_CELL_02 7  // ADC pin 7
-#define VPIN_CELL_03 8  // ADC pin 8
+#define VPIN_CELL_01 34  // D34
+#define VPIN_CELL_02 35  // D35
+#define VPIN_CELL_03 36  // VP
 
 #define NO_OF_CELLS 3
 #define CELL_01   0
@@ -32,7 +32,7 @@ unsigned long int cellVoltageTemp = 0; // (V levels in mV)
 
 /*********************************CURRENT SENSING*************************************/
 
-#define ACS_PIN 4 // ADC pin 4
+#define ACS_PIN 39 // VN
 
       //ACS(PIN, MAX_VOLTAGE, ADC_STEPS, SENSITIVITY)
 ACS712  ACS(ACS_PIN, 3.3, 4095, 100); // 20A varient has 100mV/A sensitivity
@@ -44,7 +44,7 @@ float currentLevel_mA = 0.0;
 
 #define TEMP_VAR_COUNT   3
 
-#define DHT_PIN 5 // ADC pin 5
+#define DHT_PIN 4 // D4
 
 // Connect pin 1 (on the left) of the sensor to +5V
 // NOTE: If using a board with 3.3V logic like an Arduino Due connect pin 1
@@ -63,17 +63,17 @@ float tempIndex = 0;*/
 
 /**************************************BALANCING**************************************/
 
-#define BALANCING_CELL_01   35
-#define BALANCING_CELL_02   36
-#define BALANCING_CELL_03   37
+#define BALANCING_CELL_01   25
+#define BALANCING_CELL_02   26
+#define BALANCING_CELL_03   27
 
 /***************************************CONTACTORS************************************/
 
-#define CONTACTOR_PIN1  31
+#define CONTACTOR_PIN1  32
 #define CONTACTOR_PIN2  33
 
-#define CONTACTOR_SET   23
-#define CONTACTOR_RESET 32
+#define CONTACTOR_SET   18
+#define CONTACTOR_RESET 19
 
 bool contactorFlag = false;
 
@@ -121,12 +121,6 @@ ros::Publisher TemperatureLevel_pub("Temperature & Humidity & Temperature Index"
 
 
 
-
-
-
-
-
-
 /**Task Shenanigans*/
 /*
  * Algorithm (Preferably with Tasks)
@@ -150,6 +144,12 @@ static const BaseType_t app_cpu = 1;
 #define READ_TEMP_PRIORITY      13
 #define READ_CURR_PRIORITY      12
 
+TaskHandle_t Task1;
+TaskHandle_t Task2;
+TaskHandle_t Task3;
+
+#define STACK_SIZE  10000
+
 // Task 1
 void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
 {
@@ -158,7 +158,8 @@ void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
         // read voltage and send it via ROS_serial  
         for (unsigned char local_u8CellNumIterator = CELL_01, local_u8CellPinIterator = VPIN_CELL_01; local_u8CellNumIterator <= CELL_03; local_u8CellNumIterator++, local_u8CellPinIterator++)
         {
-                cellVoltageTemp = analogRead(local_u8CellPinIterator) * 3.3 / 1024 * 1000;
+                // analogReadMilliVolts(pinNo)
+                cellVoltageTemp = analogRead(local_u8CellPinIterator) * 3.3 / 4096 * 1000;
                 cellVoltageTemp = RESISTOR_RATIO / (NO_OF_CELLS - local_u8CellNumIterator);
       
                 // critical section start
@@ -185,7 +186,6 @@ void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
                 } 
                   
                 // critical section end
-                
                 cellVoltageLevels[local_u8CellNumIterator] = cellVoltageTemp / 1000.0;
                 
          }
@@ -247,7 +247,6 @@ void void_RTOSTask_3_ReadCurrentLevel(void *parameter)
     while(true)
     {
         // read current and send it via ROS_serial  
-    
         currentLevel_mA = ACS.mA_DC() / 1000.0; // return reading in A
     
         // ros_serial => send this topic
@@ -265,14 +264,14 @@ void setup() {
   
   // Serial.begin(9600);
   
+  // Cell Voltage Setup
+  cellVoltageReading_init();
+  
   // Temp Setup
   tempSensor_init();
 
   // ACS712 Setup
   currentSensor_init();
-
-  // Cell Voltage Setup
-  cellVoltageReading_init();
   
   // Balancing Pins Setup
   balancing_init();
@@ -287,12 +286,12 @@ void setup() {
   interrupt_init();
 
   // Creating Tasks
-  xTaskCreatePinnedToCore(void_RTOSTask_1_ReadCellVoltageLevel, "Read Cell Voltage Level", 1024, NULL, READ_VOLTAGE_PRIORITY, NULL, pro_cpu);
-  xTaskCreatePinnedToCore(void_RTOSTask_2_ReadTempLevel, "Read Temperature Level", 1024, NULL, READ_TEMP_PRIORITY, NULL, app_cpu);
-  xTaskCreatePinnedToCore(void_RTOSTask_3_ReadCurrentLevel, "Read Current Level", 1024, NULL, READ_CURR_PRIORITY, NULL, app_cpu);
+  xTaskCreatePinnedToCore(void_RTOSTask_1_ReadCellVoltageLevel, "Read Cell Voltage Level", STACK_SIZE, NULL, READ_VOLTAGE_PRIORITY, Task1, pro_cpu);
+  xTaskCreatePinnedToCore(void_RTOSTask_2_ReadTempLevel, "Read Temperature Level", STACK_SIZE, NULL, READ_TEMP_PRIORITY, Task2, app_cpu);
+  xTaskCreatePinnedToCore(void_RTOSTask_3_ReadCurrentLevel, "Read Current Level", STACK_SIZE, NULL, READ_CURR_PRIORITY, Task3, app_cpu);
 
   // no need to call vTaskStartScheduler() like in vanilla FreeRTOS --- it is called automatically
-  
+
 }
 
 void loop() {
@@ -316,6 +315,7 @@ void cellVoltageReading_init()
   pinMode(CELL_01,INPUT);
   pinMode(CELL_02,INPUT);
   pinMode(CELL_03,INPUT);
+  analogReadResolution(12);
 }
 
 void balancing_init()
@@ -340,8 +340,6 @@ void ROSNodes_init()
     nh.advertise(VoltageLevel_pub);
     nh.advertise(CurrentLevel_pub);
     nh.advertise(TemperatureLevel_pub);  
-
-  
   
 }
 
