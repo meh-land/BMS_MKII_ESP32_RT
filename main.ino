@@ -142,7 +142,7 @@ static const BaseType_t app_cpu = 1;
 // Tasks Priorities (0 (lowest) -> 24 (highest))
 #define READ_VOLTAGE_PRIORITY   19
 #define READ_TEMP_PRIORITY      13
-#define READ_CURR_PRIORITY      12
+#define READ_CURR_PRIORITY      13
 
 TaskHandle_t Task1;
 TaskHandle_t Task2;
@@ -196,7 +196,7 @@ void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
          nh.spinOnce();*/
          
          Serial.printf("void_RTOSTask_1_ReadCellVoltageLevel is active\n");
-         vTaskDelay(500);
+         vTaskDelay(250);
     }  
 }
 
@@ -256,7 +256,7 @@ void void_RTOSTask_3_ReadCurrentLevel(void *parameter)
         CurrentLevel_pub.publish(&ROS_Msg_currentLevel_mA);
         nh.spinOnce();*/
         Serial.printf("void_RTOSTask_3_ReadCurrentLevel is active\n");
-        vTaskDelay(300);
+        vTaskDelay(250);
     
     }  
 }
