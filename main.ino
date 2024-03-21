@@ -190,11 +190,12 @@ void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
                 
          }
          // ros_serial => send this topic
-         nh.spinOnce();
-         ROS_Msg_cellVoltageLevels.data_length= NO_OF_CELLS;
+         /*ROS_Msg_cellVoltageLevels.data_length= NO_OF_CELLS;
          ROS_Msg_cellVoltageLevels.data= cellVoltageLevels;
          VoltageLevel_pub.publish(&ROS_Msg_cellVoltageLevels);
+         nh.spinOnce();*/
          
+         Serial.printf("void_RTOSTask_1_ReadCellVoltageLevel is active\n");
          vTaskDelay(500);
     }  
 }
@@ -230,11 +231,12 @@ void void_RTOSTask_2_ReadTempLevel(void *parameter)
 
         
         // ros_serial => send this topic
-        nh.spinOnce();
-        ROS_Msg_tempHumidityIndexArr.data_length= TEMP_VAR_COUNT;
+        /*ROS_Msg_tempHumidityIndexArr.data_length= TEMP_VAR_COUNT;
         ROS_Msg_tempHumidityIndexArr.data= tempHumidityIndexArr;
         TemperatureLevel_pub.publish(&ROS_Msg_tempHumidityIndexArr);
-    
+        nh.spinOnce();*/
+        
+        Serial.printf("void_RTOSTask_2_ReadTempLevel is active\n");
         vTaskDelay(1000); // reading is taken once per second
         
     }  
@@ -250,10 +252,10 @@ void void_RTOSTask_3_ReadCurrentLevel(void *parameter)
         currentLevel_mA = ACS.mA_DC() / 1000.0; // return reading in A
     
         // ros_serial => send this topic
-        nh.spinOnce();
-        ROS_Msg_currentLevel_mA.data= currentLevel_mA;
+        /*ROS_Msg_currentLevel_mA.data= currentLevel_mA;
         CurrentLevel_pub.publish(&ROS_Msg_currentLevel_mA);
-    
+        nh.spinOnce();*/
+        Serial.printf("void_RTOSTask_3_ReadCurrentLevel is active\n");
         vTaskDelay(300);
     
     }  
@@ -262,7 +264,7 @@ void void_RTOSTask_3_ReadCurrentLevel(void *parameter)
 
 void setup() {
   
-  // Serial.begin(9600);
+  Serial.begin(115200);
   
   // Cell Voltage Setup
   cellVoltageReading_init();
@@ -280,7 +282,7 @@ void setup() {
   contactor_init();
 
   // ROS Setup
-  ROSNodes_init();
+  //ROSNodes_init();
 
   // Interrupt Setup
   interrupt_init();
@@ -312,9 +314,9 @@ void currentSensor_init()
 
 void cellVoltageReading_init()
 {
-  pinMode(CELL_01,INPUT);
-  pinMode(CELL_02,INPUT);
-  pinMode(CELL_03,INPUT);
+  pinMode(VPIN_CELL_01,INPUT);
+  pinMode(VPIN_CELL_02,INPUT);
+  pinMode(VPIN_CELL_03,INPUT);
   analogReadResolution(12);
 }
 
