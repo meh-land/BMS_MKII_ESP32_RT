@@ -1,5 +1,9 @@
 # BMS_MKII_ESP32_RT
 
+## BMS PCB
+
+![pcb-bms](https://github.com/user-attachments/assets/e011698f-0247-4107-9879-8145a71b3c26)
+
 ## Arduino IDE setup on Ubuntu
 
 1. Download Arduino IDE from the link:
