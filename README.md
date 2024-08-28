@@ -30,3 +30,14 @@
 ## Code Description
 
 maybe when I am done :)
+
+## VIMP
+make this adjustment in ros.h:
+
+```
+#if defined(ESP8266) or defined(ESP32) or defined(ROSSERIAL_ARDUINO_TCP)
+  #include "ArduinoHardware.h"
+#else
+  #include "ArduinoHardware.h"
+#endif
+```
