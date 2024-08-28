@@ -156,7 +156,7 @@ void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
     while(true)
     {
         // read voltage and send it via ROS_serial  
-        /*for (unsigned char local_u8CellNumIterator = CELL_01, local_u8CellPinIterator = VPIN_CELL_01; local_u8CellNumIterator <= CELL_03; local_u8CellNumIterator++, local_u8CellPinIterator++)
+        for (unsigned char local_u8CellNumIterator = CELL_01, local_u8CellPinIterator = VPIN_CELL_01; local_u8CellNumIterator <= CELL_03; local_u8CellNumIterator++, local_u8CellPinIterator++)
         {
                 // analogReadMilliVolts(pinNo)
                 cellVoltageTemp = analogRead(local_u8CellPinIterator) * 3.3 / 4096 * 1000;
@@ -188,7 +188,7 @@ void void_RTOSTask_1_ReadCellVoltageLevel(void *parameter)
                 // critical section end
                 cellVoltageLevels[local_u8CellNumIterator] = cellVoltageTemp / 1000.0;
                 
-         }*/
+         }
          
          // ros_serial => send this topic
          ROS_Msg_cellVoltageLevels.data_length= NO_OF_CELLS;
@@ -253,9 +253,9 @@ void void_RTOSTask_3_ReadCurrentLevel(void *parameter)
         currentLevel_mA = ACS.mA_DC() / 1000.0; // return reading in A
     
         // ros_serial => send this topic
-        /*ROS_Msg_currentLevel_mA.data= currentLevel_mA;
+        ROS_Msg_currentLevel_mA.data= currentLevel_mA;
         CurrentLevel_pub.publish(&ROS_Msg_currentLevel_mA);
-        nh.spinOnce();*/
+        nh.spinOnce();
         //Serial.printf("void_RTOSTask_3_ReadCurrentLevel is active\n");
         vTaskDelay(250);
     
